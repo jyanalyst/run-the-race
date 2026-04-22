@@ -13,51 +13,65 @@ const STATION_TASKS = [
   {
     name: "Memory Verse Sprint",
     emoji: "🏃",
-    instruction: "One family member sprints 20m to the verse board, reads it, runs back, and recites it to the family. Together, type the key words from the verse below.",
-    quizType: "text",
-    quizQuestion: "Type the key verse from the board as best as you can remember it.",
-    answerKeywords: ["run", "race", "endurance", "hebrews"],
-    hint: "Look for words like 'run', 'race', or 'endurance'.",
+    instruction: "One family member sprints 20m to the verse board, reads Titus 2:13, runs back, and recites it to the family from memory. Together, answer the question below.",
+    quizType: "mcq",
+    quizQuestion: "The Bible calls the rapture 'the blessed hope.' What makes it blessed rather than something to fear?",
+    options: [
+      "Because we've done enough good things to deserve it",
+      "Because it depends on Jesus and what He accomplished — not us",
+      "Because we've been faithful enough",
+      "Because we've been going to church regularly",
+    ],
+    correctIndex: 1,
+    takeaway: "Jesus is coming back for us — not because we were good enough, but because He loves us.",
   },
   {
-    name: "Family Trivia Stack",
+    name: "Family Clue Card",
     emoji: "🧩",
-    instruction: "Each family member — read ONLY your clue below. Do NOT show your screen to others. Share your clue verbally and piece the answer together as a family.",
+    instruction: "Pass the clue card around — each family member reads it silently. No talking until everyone has read it. Then discuss together and answer the question.",
     quizType: "mcq",
-    quizQuestion: "Based on everyone's clues — which Bible story are you describing?",
-    options: ["Peter walking on water", "Paul in the storm", "David and Goliath", "Daniel in the lion's den"],
-    correctIndex: 1,
-    memberClues: [
-      "There was a violent storm at sea.",
-      "The crew threw all the cargo overboard.",
-      "One man stood up and said he believed God.",
-      "He said it would be exactly as God told him.",
+    quizQuestion: "The clue card describes four things that will happen at the rapture. What event are they describing?",
+    options: [
+      "A dream about heaven",
+      "The second coming judgment",
+      "The rapture — Jesus returning for those He loves",
+      "The end of the world",
     ],
+    correctIndex: 2,
+    clueCard: "He could return at any moment. In the twinkling of an eye, everything will change. Our bodies will be made new — no more sickness or pain. We will be with Him forever.",
+    takeaway: "One day Jesus is coming back — and everything sad will come untrue.",
   },
   {
     name: "Human Knot",
     emoji: "🤝",
     instruction: "Stand in a circle. Everyone reach across and grab two different people's hands. Do NOT grab the hand of the person directly beside you. Untangle yourselves without letting go. Once you're in a clean circle — tap Task Done.",
     quizType: "mcq",
-    quizQuestion: "What kept Paul anchored in the storm?",
-    options: ["His experience at sea", "A word from God", "The ship's captain", "His own courage"],
-    correctIndex: 1,
+    quizQuestion: "Knowing Jesus could return at any moment — which best describes how we should live today?",
+    options: [
+      "Stressed and worried about whether we're ready",
+      "Passive — just waiting for it to happen",
+      "Intentional — loving people well and making every day count",
+      "Focused on securing our own future first",
+    ],
+    correctIndex: 2,
+    takeaway: "Because Jesus is coming back, every day matters. The people around us matter.",
   },
   {
     name: "Stillness Challenge",
-    emoji: "⚓",
-    instruction: "Everyone stand still inside the marked zone. One person reads the verse aloud slowly. Hold the stillness for 30 seconds. Tap Begin to start the timer.",
+    emoji: "✨",
+    instruction: "Everyone stand still. One person reads this verse aloud slowly: \"Looking for the blessed hope and glorious appearing of our great God and Savior Jesus Christ.\" — Titus 2:13. Hold the stillness for 30 seconds. Tap Begin to start the timer.",
     quizType: "mcq",
-    quizQuestion: "What does an anchor do that relief cannot?",
+    quizQuestion: "The rapture means we're not just waiting for an event — we're waiting for a Person. What difference does that make?",
     options: [
-      "Makes the storm stop",
-      "Holds you in place even when the storm continues",
-      "Gives you a good feeling",
-      "Helps you escape the storm",
+      "It means we should be more religious",
+      "It means our hope is in Jesus Himself — not in circumstances or timing",
+      "It means we need to work harder before He returns",
+      "It means we should worry less about people around us",
     ],
     correctIndex: 1,
     hasTimer: true,
     timerSeconds: 30,
+    takeaway: "We're not just waiting for something to happen. We're waiting for Jesus — and He's coming for us.",
   },
 ];
 
@@ -311,15 +325,14 @@ function Race({ family, onUpdate, onBoard }) {
             <div style={{ fontSize: 15, lineHeight: 1.7 }}>{station.instruction}</div>
           </div>
 
-          {station.name === "Family Trivia Stack" && (
+          {station.clueCard && (
             <div style={{ marginBottom: 20 }}>
-              <div className="label" style={{ marginBottom: 12 }}>Member Clues</div>
-              {station.memberClues.map((clue, i) => (
-                <div key={i} className="clue-member">
-                  <div className="gold-label" style={{ marginBottom: 8 }}>Member {i + 1}</div>
-                  <div style={{ fontSize: 15 }}>{clue}</div>
-                </div>
-              ))}
+              <div className="label" style={{ marginBottom: 12 }}>📇 Clue Card — Pass Around</div>
+              <div className="clue-member">
+                <div className="gold-label" style={{ marginBottom: 8 }}>Read silently. No talking until everyone has read it.</div>
+                <div style={{ fontSize: 16, lineHeight: 1.8, fontStyle: "italic" }}>{station.clueCard}</div>
+              </div>
+              <div style={{ fontSize: 13, color: C.textDim, marginTop: 8, textAlign: "center" }}>Pass the phone around — each person reads in silence.</div>
             </div>
           )}
 
@@ -368,7 +381,13 @@ function Race({ family, onUpdate, onBoard }) {
         <div className="pop" style={{ textAlign: "center", padding: "20px 0" }}>
           <span className="big-emoji">✅</span>
           <div className="hero" style={{ fontSize: 48 }}>CORRECT!</div>
-          <p style={{ color: C.textDim, margin: "16px 0 28px", fontSize: 15, lineHeight: 1.7 }}>
+          {station.takeaway && (
+            <div style={{ background: "#1A2235", border: "1px solid #F5C84244", borderRadius: 14, padding: "16px 20px", margin: "16px 0 20px", textAlign: "left" }}>
+              <div className="gold-label" style={{ marginBottom: 8 }}>💛 Take this home</div>
+              <div style={{ fontSize: 15, lineHeight: 1.7, fontStyle: "italic" }}>{station.takeaway}</div>
+            </div>
+          )}
+          <p style={{ color: C.textDim, margin: "0 0 28px", fontSize: 15, lineHeight: 1.7 }}>
             {idx < STATIONS - 1 ? "Your next clue is ready. Keep running!" : "Final station done! Head to the relay zone!"}
           </p>
           <button className="btn btn-gold" onClick={next}>{idx < STATIONS - 1 ? "GET NEXT CLUE →" : "UNLOCK THE RELAY 🏁"}</button>
