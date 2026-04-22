@@ -1,4 +1,7 @@
-import { kv } from "@vercel/kv";
+import { Redis } from "@upstash/redis";
+
+const redis = Redis.fromEnv();
+const STATIONS = 4;
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -6,22 +9,20 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { method } = req;
-
   try {
-    // GET /api/family?name=xxx — get or register family
-    if (method === "GET") {
+    if (req.method === "GET") {
       const { name } = req.query;
       if (!name) return res.status(400).json({ error: "Name required" });
 
       const key = `family:${name.toLowerCase().replace(/\s+/g, "-")}`;
-      const existing = await kv.get(key);
-      if (existing) return res.status(200).json({ family: existing, isNew: false });
+      const existing = await redis.get(key);
+      if (existing) {
+        const family = typeof existing === "string" ? JSON.parse(existing) : existing;
+        return res.status(200).json({ family, isNew: false });
+      }
 
-      // Count families to assign starting station
-      const keys = await kv.keys("family:*");
+      const keys = await redis.keys("family:*");
       const count = keys.length;
-      const STATIONS = 4;
       const startStation = (count % STATIONS) + 1;
       const stationOrder = [];
       for (let i = 0; i < STATIONS; i++) {
@@ -38,27 +39,27 @@ export default async function handler(req, res) {
         registeredAt: Date.now(),
       };
 
-      await kv.set(key, family);
+      await redis.set(key, JSON.stringify(family));
       return res.status(200).json({ family, isNew: true });
     }
 
-    // POST /api/family — update family progress
-    if (method === "POST") {
+    if (req.method === "POST") {
       const { name, updates } = req.body;
       if (!name || !updates) return res.status(400).json({ error: "Name and updates required" });
 
       const key = `family:${name.toLowerCase().replace(/\s+/g, "-")}`;
-      const existing = await kv.get(key);
-      if (!existing) return res.status(404).json({ error: "Family not found" });
+      const raw = await redis.get(key);
+      if (!raw) return res.status(404).json({ error: "Family not found" });
 
+      const existing = typeof raw === "string" ? JSON.parse(raw) : raw;
       const updated = { ...existing, ...updates };
-      await kv.set(key, updated);
+      await redis.set(key, JSON.stringify(updated));
       return res.status(200).json({ family: updated });
     }
 
     return res.status(405).json({ error: "Method not allowed" });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: "Server error", detail: err.message });
   }
 }
