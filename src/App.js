@@ -201,13 +201,14 @@ export default function App() {
     setFamilyData(family);
   };
 
-  if (screen === "home") return <Home name={familyName} setName={setFamilyName} onGo={handleRegister} loading={loading} error={error} onBoard={() => setScreen("leaderboard")} />;
+  if (screen === "home") return <Home name={familyName} setName={setFamilyName} onGo={handleRegister} loading={loading} error={error} onBoard={() => setScreen("leaderboard")} onAdmin={() => setScreen("admin")} />;
   if (screen === "leaderboard") return <Leaderboard data={leaderboard} onBack={() => setScreen(familyData ? "race" : "home")} onRefresh={loadLeaderboard} />;
   if (screen === "race") return <Race family={familyData} onUpdate={handleUpdate} onBoard={() => { loadLeaderboard(); setScreen("leaderboard"); }} />;
+  if (screen === "admin") return <Admin />;
   return null;
 }
 
-function Home({ name, setName, onGo, loading, error, onBoard }) {
+function Home({ name, setName, onGo, loading, error, onBoard, onAdmin }) {
   return (
     <div className="app"><div className="screen">
       <div style={{ paddingTop: 40, marginBottom: 28 }}>
@@ -227,6 +228,9 @@ function Home({ name, setName, onGo, loading, error, onBoard }) {
         <button className="btn btn-ghost" onClick={onBoard}>View Leaderboard</button>
       </div>
       <div style={{ textAlign: "center", marginTop: 28, color: C.textDim, fontSize: 13 }}>Already registered? Enter your family name to continue.</div>
+      <div style={{ textAlign: "center", marginTop: 40 }}>
+        <button onClick={onAdmin} style={{ background: "none", border: "none", color: C.border, fontSize: 12, cursor: "pointer", fontFamily: "'DM Mono', monospace", letterSpacing: 2 }}>ADMIN</button>
+      </div>
     </div></div>
   );
 }
@@ -428,6 +432,164 @@ function Leaderboard({ data, onBack, onRefresh }) {
         <div className="verse-text">"Let us run with endurance the race that is set before us."</div>
         <div className="verse-ref">— HEBREWS 12:1</div>
       </div>
+    </div></div>
+  );
+}
+
+function Admin() {
+  const [password, setPassword] = useState("");
+  const [authed, setAuthed] = useState(false);
+  const [families, setFamilies] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+
+  const login = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await fetch("/api/admin", { headers: { "x-admin-password": password } });
+      if (res.status === 401) { setError("Wrong password."); setLoading(false); return; }
+      const { families: f } = await res.json();
+      setFamilies(f || []);
+      setAuthed(true);
+    } catch { setError("Connection error."); }
+    setLoading(false);
+  };
+
+  const refresh = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin", { headers: { "x-admin-password": password } });
+      const { families: f } = await res.json();
+      setFamilies(f || []);
+    } catch {}
+    setLoading(false);
+  };
+
+  const deleteFamily = async (key, name) => {
+    setDeleting(key);
+    try {
+      await fetch("/api/admin", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", "x-admin-password": password },
+        body: JSON.stringify({ key }),
+      });
+      setFamilies(f => f.filter(f => f.key !== key));
+    } catch {}
+    setDeleting(null);
+  };
+
+  const resetAll = async () => {
+    setLoading(true);
+    try {
+      await Promise.all(families.map(f =>
+        fetch("/api/admin", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json", "x-admin-password": password },
+          body: JSON.stringify({ key: f.key }),
+        })
+      ));
+      setFamilies([]);
+      setConfirmReset(false);
+    } catch {}
+    setLoading(false);
+  };
+
+  if (!authed) return (
+    <div className="app"><div className="screen">
+      <div style={{ paddingTop: 60, marginBottom: 32 }}>
+        <div className="label" style={{ marginBottom: 8 }}>Admin Access</div>
+        <div className="hero" style={{ fontSize: 52 }}>ADMIN</div>
+      </div>
+      <div className="label" style={{ marginBottom: 12 }}>Password</div>
+      <input
+        className="input" type="password" placeholder="Enter admin password"
+        value={password} onChange={e => setPassword(e.target.value)}
+        onKeyDown={e => e.key === "Enter" && login()}
+        style={{ marginBottom: 16 }}
+      />
+      {error && <div className="err">{error}</div>}
+      <div style={{ marginTop: 20 }}>
+        <button className="btn btn-gold" onClick={login} disabled={loading}>
+          {loading ? "CHECKING..." : "LOGIN"}
+        </button>
+      </div>
+    </div></div>
+  );
+
+  return (
+    <div className="app"><div className="screen">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+        <div>
+          <div className="label">Admin Panel</div>
+          <div className="hero" style={{ fontSize: 40 }}>FAMILIES</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>Refresh</button>
+        </div>
+      </div>
+
+      <div className="label" style={{ marginBottom: 16 }}>{families.length} families registered</div>
+
+      {families.length === 0 && (
+        <div style={{ textAlign: "center", color: C.textDim, padding: 40, fontSize: 15 }}>No families registered yet.</div>
+      )}
+
+      {families.map((f) => (
+        <div key={f.key} className="lb-row" style={{ marginBottom: 8 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>{f.data.name}</div>
+            <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>
+              {f.data.stationsComplete}/{STATIONS} stations
+              {f.data.stationsComplete >= STATIONS ? " 🏁" : ""}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 4, marginRight: 12 }}>
+            {Array.from({ length: STATIONS }).map((_, j) => (
+              <div key={j} className={`dot ${j < f.data.stationsComplete ? (f.data.stationsComplete >= STATIONS ? "dot-done" : "dot-on") : ""}`} />
+            ))}
+          </div>
+          <button
+            onClick={() => deleteFamily(f.key, f.data.name)}
+            disabled={deleting === f.key}
+            style={{
+              background: deleting === f.key ? C.border : "#2A0A0A",
+              border: `1px solid ${C.accent}`,
+              borderRadius: 8, padding: "6px 12px",
+              color: C.accent, fontSize: 13,
+              fontFamily: "'DM Sans', sans-serif",
+              cursor: "pointer", whiteSpace: "nowrap"
+            }}>
+            {deleting === f.key ? "..." : "Reset"}
+          </button>
+        </div>
+      ))}
+
+      {families.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          {!confirmReset ? (
+            <button className="btn btn-ghost" onClick={() => setConfirmReset(true)} style={{ color: C.accent, borderColor: C.accent }}>
+              Reset All Families
+            </button>
+          ) : (
+            <div>
+              <div style={{ textAlign: "center", color: C.accent, marginBottom: 16, fontSize: 14 }}>
+                This will delete ALL families. Are you sure?
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setConfirmReset(false)}>Cancel</button>
+                <button
+                  className="btn btn-sm"
+                  style={{ flex: 1, background: C.accent, color: "white", border: "none", borderRadius: 14, cursor: "pointer" }}
+                  onClick={resetAll} disabled={loading}>
+                  {loading ? "Deleting..." : "Yes, Reset All"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div></div>
   );
 }
