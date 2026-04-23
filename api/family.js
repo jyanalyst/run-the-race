@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         currentIndex: 0,
         stationsComplete: 0,
         completedStations: [],
+        members: [],
         registeredAt: Date.now(),
       };
 
@@ -54,6 +55,24 @@ export default async function handler(req, res) {
       const existing = typeof raw === "string" ? JSON.parse(raw) : raw;
       const updated = { ...existing, ...updates };
       await redis.set(key, JSON.stringify(updated));
+
+      // If family just completed all stations — assign to a team
+      if (updates.stationsComplete >= STATIONS && existing.stationsComplete < STATIONS) {
+        try {
+          await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/teams`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ familyName: name, members: updated.members || [] }),
+          });
+          // Re-fetch updated family with teamIndex
+          const refreshed = await redis.get(key);
+          const refreshedFamily = typeof refreshed === "string" ? JSON.parse(refreshed) : refreshed;
+          return res.status(200).json({ family: refreshedFamily });
+        } catch (e) {
+          console.error("Team assignment failed", e);
+        }
+      }
+
       return res.status(200).json({ family: updated });
     }
 
