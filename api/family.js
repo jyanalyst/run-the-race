@@ -3,6 +3,17 @@ import { Redis } from "@upstash/redis";
 const redis = Redis.fromEnv();
 const STATIONS = 4;
 
+function balanceTeams(existingTeams, relayMembers) {
+  const scores = existingTeams.map((team, i) => {
+    const kids = team.filter(m => m.age && parseInt(m.age) < 18);
+    const adults = team.filter(m => !m.age || parseInt(m.age) >= 18);
+    const totalAge = kids.reduce((s, m) => s + parseInt(m.age), 0);
+    return { index: i, kidCount: kids.length, adultCount: adults.length, totalAge };
+  });
+  scores.sort((a, b) => a.kidCount - b.kidCount || a.adultCount - b.adultCount || a.totalAge - b.totalAge);
+  return scores[0].index;
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -54,25 +65,39 @@ export default async function handler(req, res) {
 
       const existing = typeof raw === "string" ? JSON.parse(raw) : raw;
       const updated = { ...existing, ...updates };
-      await redis.set(key, JSON.stringify(updated));
 
-      // If family just completed all stations — assign to a team
-      if (updates.stationsComplete >= STATIONS && existing.stationsComplete < STATIONS) {
-        try {
-          await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/teams`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ familyName: name, members: updated.members || [] }),
+      // If family just completed all stations — assign to team directly here
+      const justCompleted = updates.stationsComplete >= STATIONS && (existing.stationsComplete || 0) < STATIONS;
+      
+      if (justCompleted && updated.teamIndex === undefined) {
+        // Get current teams
+        const teamsRaw = await redis.get("teams");
+        const teams = teamsRaw
+          ? (typeof teamsRaw === "string" ? JSON.parse(teamsRaw) : teamsRaw)
+          : [[], [], [], []];
+
+        // Get relay members
+        const relayMembers = (updated.members || []).filter(m => m.relay);
+
+        if (relayMembers.length > 0) {
+          const teamIndex = balanceTeams(teams, relayMembers);
+          
+          // Add members to team
+          relayMembers.forEach(m => {
+            teams[teamIndex].push({ ...m, family: name });
           });
-          // Re-fetch updated family with teamIndex
-          const refreshed = await redis.get(key);
-          const refreshedFamily = typeof refreshed === "string" ? JSON.parse(refreshed) : refreshed;
-          return res.status(200).json({ family: refreshedFamily });
-        } catch (e) {
-          console.error("Team assignment failed", e);
+
+          await redis.set("teams", JSON.stringify(teams));
+          updated.teamIndex = teamIndex;
+        } else {
+          // No relay members — assign to smallest team by default
+          const scores = [0,1,2,3].map(i => ({ index: i, count: (teams[i] || []).length }));
+          scores.sort((a, b) => a.count - b.count);
+          updated.teamIndex = scores[0].index;
         }
       }
 
+      await redis.set(key, JSON.stringify(updated));
       return res.status(200).json({ family: updated });
     }
 
