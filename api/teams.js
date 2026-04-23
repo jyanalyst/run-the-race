@@ -1,19 +1,19 @@
 import { Redis } from "@upstash/redis";
 
 const redis = Redis.fromEnv();
-const STATIONS = 4;
-const TEAM_NAMES = ["Eagles", "Lions", "Bears", "Hawks"];
+const KID_AGE_CUTOFF = 12;
 
-function balanceTeams(existingTeams, newRelayMembers) {
-  // Score each team by kid count and adult count
+function isKid(member) {
+  return member.age && parseInt(member.age) <= KID_AGE_CUTOFF;
+}
+
+function balanceTeams(existingTeams, relayMembers) {
   const scores = existingTeams.map((team, i) => {
-    const kids = team.filter(m => m.age && parseInt(m.age) < 18);
-    const adults = team.filter(m => !m.age || parseInt(m.age) >= 18);
+    const kids = team.filter(m => isKid(m));
+    const adults = team.filter(m => !isKid(m));
     const totalAge = kids.reduce((s, m) => s + parseInt(m.age), 0);
     return { index: i, kidCount: kids.length, adultCount: adults.length, totalAge };
   });
-
-  // Sort by kid count first, then adult count, then total age (lower = younger team, needs older kids)
   scores.sort((a, b) => a.kidCount - b.kidCount || a.adultCount - b.adultCount || a.totalAge - b.totalAge);
   return scores[0].index;
 }
@@ -25,37 +25,34 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
-    // GET — return current teams
     if (req.method === "GET") {
       const raw = await redis.get("teams");
       const teams = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : [[], [], [], []];
       return res.status(200).json({ teams });
     }
 
-    // POST — assign family to a team after completing all stations
     if (req.method === "POST") {
       const { familyName, members } = req.body;
       if (!familyName || !members) return res.status(400).json({ error: "Missing data" });
 
-      // Get current teams
       const raw = await redis.get("teams");
       const teams = raw ? (typeof raw === "string" ? JSON.parse(raw) : raw) : [[], [], [], []];
 
-      // Only relay members get added to teams
       const relayMembers = members.filter(m => m.relay);
       if (!relayMembers.length) return res.status(200).json({ teams, teamIndex: 0 });
 
-      // Find best team
       const teamIndex = balanceTeams(teams, relayMembers);
 
-      // Add members to team with family tag
       relayMembers.forEach(m => {
-        teams[teamIndex].push({ ...m, family: familyName });
+        const normalised = { ...m };
+        if (normalised.age && parseInt(normalised.age) > KID_AGE_CUTOFF) {
+          normalised.age = "";
+        }
+        teams[teamIndex].push({ ...normalised, family: familyName });
       });
 
       await redis.set("teams", JSON.stringify(teams));
 
-      // Update family record with team assignment
       const familyKey = `family:${familyName.toLowerCase().replace(/\s+/g, "-")}`;
       const familyRaw = await redis.get(familyKey);
       if (familyRaw) {
