@@ -4,10 +4,17 @@ const redis = Redis.fromEnv();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "rtr2025";
 const KID_AGE_CUTOFF = 12;
 const TEAM_COUNT = 4;
-const HANDICAP_PER_MEMBER = 2;
+const KID_TIME_OFFSET = 13;
 
 function isKid(member) {
   return member.age && parseInt(member.age) <= KID_AGE_CUTOFF;
+}
+
+// Per-leg time: adults run a fast leg (1 unit), kids run slower the younger they are.
+// Age 12 ≈ adult; age 4 ≈ 9 units. Used to balance total team race time.
+function legTime(member) {
+  if (!isKid(member)) return 1;
+  return Math.max(1, KID_TIME_OFFSET - parseInt(member.age));
 }
 
 function buildBalancedTeams(allFamilies) {
@@ -23,6 +30,7 @@ function buildBalancedTeams(allFamilies) {
     const adults = relayMembers.filter(m => !isKid(m));
     const totalKidAge = kids.reduce((s, m) => s + parseInt(m.age), 0);
     const avgKidAge = kids.length ? totalKidAge / kids.length : 0;
+    const familyTime = relayMembers.reduce((s, m) => s + legTime(m), 0);
     return {
       key: f.key,
       name: f.data.name,
@@ -33,46 +41,40 @@ function buildBalancedTeams(allFamilies) {
       adultCount: adults.length,
       totalKidAge,
       avgKidAge,
+      familyTime,
     };
   }).filter(f => f.members.length > 0); // only families with relay members
 
-  // Sort family units by combined strength score descending
-  // Score = avgKidAge * 2 + adultCount * 5
-  // Adults weighted more heavily since they run faster and have bigger impact on relay
-  familyUnits.sort((a, b) => {
-    const scoreA = (a.avgKidAge * 2) + (a.adultCount * 5);
-    const scoreB = (b.avgKidAge * 2) + (b.adultCount * 5);
-    return scoreB - scoreA;
-  });
+  // Sort family units by total race time descending — slowest (young-kid-heavy)
+  // families get assigned first so they can land on the smallest team.
+  familyUnits.sort((a, b) => b.familyTime - a.familyTime);
 
   // Initialise 4 empty teams
   const teams = [[], [], [], []];
   const teamStats = Array.from({ length: TEAM_COUNT }, () => ({
-    kidCount: 0, adultCount: 0, totalKidAge: 0, score: 0, memberCount: 0
+    kidCount: 0, adultCount: 0, totalKidAge: 0, memberCount: 0, totalTime: 0
   }));
 
-  // Greedy fill — assign each family to the team with the lowest adjusted score.
-  // adjusted = score - HANDICAP_PER_MEMBER * memberCount, so larger teams need
-  // proportionally more strength to stay competitive in the relay.
+  // Greedy fill — each family goes to the team with the lowest current race time.
+  // This naturally puts slower (young-kid-heavy) families on smaller teams and
+  // faster (adult-heavy) families on larger teams, equalising race times across teams.
   familyUnits.forEach(unit => {
     let teamIndex = 0;
-    let minAdjusted = Infinity;
+    let minTime = Infinity;
     for (let i = 0; i < TEAM_COUNT; i++) {
-      const adjusted = teamStats[i].score - (HANDICAP_PER_MEMBER * teamStats[i].memberCount);
-      if (adjusted < minAdjusted) {
-        minAdjusted = adjusted;
+      if (teamStats[i].totalTime < minTime) {
+        minTime = teamStats[i].totalTime;
         teamIndex = i;
       }
     }
 
     unit.members.forEach(m => teams[teamIndex].push(m));
 
-    const unitScore = (unit.avgKidAge * 2) + (unit.adultCount * 5);
     teamStats[teamIndex].kidCount += unit.kidCount;
     teamStats[teamIndex].adultCount += unit.adultCount;
     teamStats[teamIndex].totalKidAge += unit.totalKidAge;
-    teamStats[teamIndex].score += unitScore;
     teamStats[teamIndex].memberCount += unit.members.length;
+    teamStats[teamIndex].totalTime += unit.familyTime;
   });
 
   return { teams, teamStats };
