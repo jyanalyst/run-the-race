@@ -274,12 +274,28 @@ export default function App() {
   };
 
   if (restoring) return null;
-  if (screen === "home") return <Home name={familyName} setName={setFamilyName} onNext={() => setScreen("register")} onBoard={() => setScreen("leaderboard")} onAdmin={() => setScreen("admin")} />;
+
+  const showAdminFab = screen !== "admin" && screen !== "register";
+  const adminFab = showAdminFab ? <AdminFab onClick={() => setScreen("admin")} /> : null;
+
+  if (screen === "home") return <><Home name={familyName} setName={setFamilyName} onNext={() => setScreen("register")} onBoard={() => setScreen("leaderboard")} onAdmin={() => setScreen("admin")} />{adminFab}</>;
   if (screen === "register") return <Register familyName={familyName} onSubmit={handleRegister} loading={loading} error={error} onBack={() => setScreen("home")} />;
-  if (screen === "race") return <Race family={familyData} onUpdate={handleUpdate} onBoard={() => { loadLeaderboard(); loadTeams(); setScreen("leaderboard"); }} onExit={handleExit} />;
-  if (screen === "leaderboard") return <Leaderboard data={leaderboard} teams={teams} onBack={() => setScreen(familyData ? "race" : "home")} onRefresh={() => { loadLeaderboard(); loadTeams(); }} />;
+  if (screen === "race") return <><Race family={familyData} onUpdate={handleUpdate} onBoard={() => { loadLeaderboard(); loadTeams(); setScreen("leaderboard"); }} onExit={handleExit} />{adminFab}</>;
+  if (screen === "leaderboard") return <><Leaderboard data={leaderboard} teams={teams} onBack={() => setScreen(familyData ? "race" : "home")} onRefresh={() => { loadLeaderboard(); loadTeams(); }} />{adminFab}</>;
   if (screen === "admin") return <Admin onExit={() => setScreen("home")} />;
   return null;
+}
+
+function AdminFab({ onClick }) {
+  return (
+    <button onClick={onClick} style={{
+      position: "fixed", bottom: 16, right: 16, zIndex: 1000,
+      background: C.card, border: `1px solid ${C.border}`, color: C.textDim,
+      borderRadius: 100, padding: "8px 14px", fontSize: 11, letterSpacing: 2,
+      fontFamily: "'DM Mono', monospace", cursor: "pointer",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.4)", textTransform: "uppercase",
+    }}>Admin</button>
+  );
 }
 
 function Home({ name, setName, onNext, onBoard, onAdmin }) {

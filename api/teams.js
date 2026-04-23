@@ -4,6 +4,7 @@ const redis = Redis.fromEnv();
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "rtr2025";
 const KID_AGE_CUTOFF = 12;
 const TEAM_COUNT = 4;
+const HANDICAP_PER_MEMBER = 2;
 
 function isKid(member) {
   return member.age && parseInt(member.age) <= KID_AGE_CUTOFF;
@@ -47,27 +48,31 @@ function buildBalancedTeams(allFamilies) {
   // Initialise 4 empty teams
   const teams = [[], [], [], []];
   const teamStats = Array.from({ length: TEAM_COUNT }, () => ({
-    kidCount: 0, adultCount: 0, totalKidAge: 0, score: 0
+    kidCount: 0, adultCount: 0, totalKidAge: 0, score: 0, memberCount: 0
   }));
 
-  // Snake draft family units by combined strength score
-  // Even rounds: 0→3, Odd rounds: 3→0
-  familyUnits.forEach((unit, i) => {
-    const round = Math.floor(i / TEAM_COUNT);
-    const pos = i % TEAM_COUNT;
-    const teamIndex = round % 2 === 0 ? pos : TEAM_COUNT - 1 - pos;
+  // Greedy fill — assign each family to the team with the lowest adjusted score.
+  // adjusted = score - HANDICAP_PER_MEMBER * memberCount, so larger teams need
+  // proportionally more strength to stay competitive in the relay.
+  familyUnits.forEach(unit => {
+    let teamIndex = 0;
+    let minAdjusted = Infinity;
+    for (let i = 0; i < TEAM_COUNT; i++) {
+      const adjusted = teamStats[i].score - (HANDICAP_PER_MEMBER * teamStats[i].memberCount);
+      if (adjusted < minAdjusted) {
+        minAdjusted = adjusted;
+        teamIndex = i;
+      }
+    }
 
-    // Add all family members to the same team
-    unit.members.forEach(m => {
-      teams[teamIndex].push(m);
-    });
+    unit.members.forEach(m => teams[teamIndex].push(m));
 
-    // Update team stats
     const unitScore = (unit.avgKidAge * 2) + (unit.adultCount * 5);
     teamStats[teamIndex].kidCount += unit.kidCount;
     teamStats[teamIndex].adultCount += unit.adultCount;
     teamStats[teamIndex].totalKidAge += unit.totalKidAge;
     teamStats[teamIndex].score += unitScore;
+    teamStats[teamIndex].memberCount += unit.members.length;
   });
 
   return { teams, teamStats };
