@@ -2,11 +2,16 @@ import { Redis } from "@upstash/redis";
 
 const redis = Redis.fromEnv();
 const STATIONS = 4;
+const KID_AGE_CUTOFF = 12;
+
+function isKid(member) {
+  return member.age && parseInt(member.age) <= KID_AGE_CUTOFF;
+}
 
 function balanceTeams(existingTeams, relayMembers) {
   const scores = existingTeams.map((team, i) => {
-    const kids = team.filter(m => m.age && parseInt(m.age) < 18);
-    const adults = team.filter(m => !m.age || parseInt(m.age) >= 18);
+    const kids = team.filter(m => isKid(m));
+    const adults = team.filter(m => !isKid(m));
     const totalAge = kids.reduce((s, m) => s + parseInt(m.age), 0);
     return { index: i, kidCount: kids.length, adultCount: adults.length, totalAge };
   });
@@ -66,31 +71,29 @@ export default async function handler(req, res) {
       const existing = typeof raw === "string" ? JSON.parse(raw) : raw;
       const updated = { ...existing, ...updates };
 
-      // If family just completed all stations — assign to team directly here
       const justCompleted = updates.stationsComplete >= STATIONS && (existing.stationsComplete || 0) < STATIONS;
-      
+
       if (justCompleted && updated.teamIndex === undefined) {
-        // Get current teams
         const teamsRaw = await redis.get("teams");
         const teams = teamsRaw
           ? (typeof teamsRaw === "string" ? JSON.parse(teamsRaw) : teamsRaw)
           : [[], [], [], []];
 
-        // Get relay members
         const relayMembers = (updated.members || []).filter(m => m.relay);
 
         if (relayMembers.length > 0) {
           const teamIndex = balanceTeams(teams, relayMembers);
-          
-          // Add members to team
           relayMembers.forEach(m => {
-            teams[teamIndex].push({ ...m, family: name });
+            // Normalise — treat 13+ as adult regardless of age entered
+            const normalised = { ...m };
+            if (normalised.age && parseInt(normalised.age) > KID_AGE_CUTOFF) {
+              normalised.age = "";
+            }
+            teams[teamIndex].push({ ...normalised, family: name });
           });
-
           await redis.set("teams", JSON.stringify(teams));
           updated.teamIndex = teamIndex;
         } else {
-          // No relay members — assign to smallest team by default
           const scores = [0,1,2,3].map(i => ({ index: i, count: (teams[i] || []).length }));
           scores.sort((a, b) => a.count - b.count);
           updated.teamIndex = scores[0].index;
