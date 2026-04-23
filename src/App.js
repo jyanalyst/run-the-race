@@ -182,6 +182,8 @@ function assignTeam(existingTeams, newMembers) {
   return scores[0].index;
 }
 
+const STORAGE_KEY = "rtr.familyName";
+
 export default function App() {
   const [screen, setScreen] = useState("home");
   const [familyName, setFamilyName] = useState("");
@@ -190,12 +192,32 @@ export default function App() {
   const [teams, setTeams] = useState([[], [], [], []]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [restoring, setRestoring] = useState(true);
 
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = css;
     document.head.appendChild(style);
     return () => document.head.removeChild(style);
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) { setRestoring(false); return; }
+    api.getFamily(stored)
+      .then(({ family }) => {
+        if (family?.members?.length > 0) {
+          setFamilyName(stored);
+          setFamilyData(family);
+          setScreen("race");
+        } else if (family) {
+          setFamilyName(stored);
+        } else {
+          localStorage.removeItem(STORAGE_KEY);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setRestoring(false));
   }, []);
 
   const loadLeaderboard = async () => {
@@ -219,11 +241,21 @@ export default function App() {
   const handleRegister = async (members) => {
     setLoading(true); setError("");
     try {
-      const { family, error: err } = await api.getFamily(familyName.trim());
+      const name = familyName.trim();
+      const { family, error: err } = await api.getFamily(name);
       if (err) { setError("Something went wrong. Try again."); setLoading(false); return; }
-      // Attach members to family
-      const { family: updated } = await api.updateFamily(familyName.trim(), { members });
+      // Returning family — don't overwrite their members
+      if (family?.members?.length > 0) {
+        setFamilyData(family);
+        localStorage.setItem(STORAGE_KEY, name);
+        setScreen("race");
+        setLoading(false);
+        return;
+      }
+      // New family — attach members
+      const { family: updated } = await api.updateFamily(name, { members });
       setFamilyData(updated);
+      localStorage.setItem(STORAGE_KEY, name);
       setScreen("race");
     } catch { setError("Connection error. Check your connection."); }
     setLoading(false);
@@ -234,11 +266,19 @@ export default function App() {
     setFamilyData(family);
   };
 
+  const handleExit = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setFamilyData(null);
+    setFamilyName("");
+    setScreen("home");
+  };
+
+  if (restoring) return null;
   if (screen === "home") return <Home name={familyName} setName={setFamilyName} onNext={() => setScreen("register")} onBoard={() => setScreen("leaderboard")} onAdmin={() => setScreen("admin")} />;
   if (screen === "register") return <Register familyName={familyName} onSubmit={handleRegister} loading={loading} error={error} onBack={() => setScreen("home")} />;
-  if (screen === "race") return <Race family={familyData} onUpdate={handleUpdate} onBoard={() => { loadLeaderboard(); loadTeams(); setScreen("leaderboard"); }} />;
+  if (screen === "race") return <Race family={familyData} onUpdate={handleUpdate} onBoard={() => { loadLeaderboard(); loadTeams(); setScreen("leaderboard"); }} onExit={handleExit} />;
   if (screen === "leaderboard") return <Leaderboard data={leaderboard} teams={teams} onBack={() => setScreen(familyData ? "race" : "home")} onRefresh={() => { loadLeaderboard(); loadTeams(); }} />;
-  if (screen === "admin") return <Admin />;
+  if (screen === "admin") return <Admin onExit={() => setScreen("home")} />;
   return null;
 }
 
@@ -324,7 +364,7 @@ function Register({ familyName, onSubmit, loading, error, onBack }) {
   );
 }
 
-function Race({ family, onUpdate, onBoard }) {
+function Race({ family, onUpdate, onBoard, onExit }) {
   const [phase, setPhase] = useState("clue");
   const [sel, setSel] = useState(null);
   const [showErr, setShowErr] = useState(false);
@@ -375,7 +415,10 @@ function Race({ family, onUpdate, onBoard }) {
           <div className="label">{family.name}</div>
           <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: C.gold, letterSpacing: 2 }}>{family.stationsComplete || 0}/{STATIONS} STATIONS</div>
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={onBoard}>Teams</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={() => { if (window.confirm("Exit race and return to home? You can rejoin by entering your family name.")) onExit(); }}>Exit</button>
+          <button className="btn btn-ghost btn-sm" onClick={onBoard}>Teams</button>
+        </div>
       </div>
       <div className="prog"><div className="prog-fill" style={{ width: `${pct}%` }} /></div>
 
@@ -591,7 +634,7 @@ function Leaderboard({ data, teams, onBack, onRefresh }) {
   );
 }
 
-function Admin() {
+function Admin({ onExit }) {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [families, setFamilies] = useState([]);
@@ -657,6 +700,8 @@ function Admin() {
         body: JSON.stringify({ key }),
       });
       setFamilies(f => f.filter(f => f.key !== key));
+      const { teams: t } = await (await fetch("/api/teams")).json();
+      setTeams(t || [[], [], [], []]);
     } catch {}
     setDeleting(null);
   };
@@ -704,7 +749,7 @@ function Admin() {
         <div className="hero" style={{ fontSize: 40 }}>ADMIN</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>Refresh</button>
-          <button className="btn btn-ghost btn-sm" onClick={() => window.location.href = "/"}>Home</button>
+          <button className="btn btn-ghost btn-sm" onClick={onExit}>Home</button>
         </div>
       </div>
 
