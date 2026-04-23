@@ -595,10 +595,14 @@ function Admin() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
   const [families, setFamilies] = useState([]);
+  const [teams, setTeams] = useState([[], [], [], []]);
   const [loading, setLoading] = useState(false);
+  const [forming, setForming] = useState(false);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [teamsFormed, setTeamsFormed] = useState(false);
+  const [tab, setTab] = useState("families");
 
   const login = async () => {
     setLoading(true); setError("");
@@ -606,7 +610,11 @@ function Admin() {
       const res = await fetch("/api/admin", { headers: { "x-admin-password": password } });
       if (res.status === 401) { setError("Wrong password."); setLoading(false); return; }
       const { families: f } = await res.json();
-      setFamilies(f || []); setAuthed(true);
+      const { teams: t } = await (await fetch("/api/teams")).json();
+      setFamilies(f || []); setTeams(t || [[], [], [], []]);
+      const hasTeams = (t || []).some(team => team.length > 0);
+      setTeamsFormed(hasTeams);
+      setAuthed(true);
     } catch { setError("Connection error."); }
     setLoading(false);
   };
@@ -616,9 +624,28 @@ function Admin() {
     try {
       const res = await fetch("/api/admin", { headers: { "x-admin-password": password } });
       const { families: f } = await res.json();
-      setFamilies(f || []);
+      const { teams: t } = await (await fetch("/api/teams")).json();
+      setFamilies(f || []); setTeams(t || [[], [], [], []]);
+      const hasTeams = (t || []).some(team => team.length > 0);
+      setTeamsFormed(hasTeams);
     } catch {}
     setLoading(false);
+  };
+
+  const formTeams = async () => {
+    setForming(true);
+    try {
+      const res = await fetch("/api/teams", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-admin-password": password },
+      });
+      if (res.status === 401) { setError("Unauthorised."); setForming(false); return; }
+      const { teams: t } = await res.json();
+      setTeams(t || [[], [], [], []]);
+      setTeamsFormed(true);
+      setTab("teams");
+    } catch { setError("Failed to form teams."); }
+    setForming(false);
   };
 
   const deleteFamily = async (key) => {
@@ -644,13 +671,12 @@ function Admin() {
           body: JSON.stringify({ key: f.key }),
         })
       ));
-      // Also reset teams
       await fetch("/api/admin", {
         method: "DELETE",
         headers: { "Content-Type": "application/json", "x-admin-password": password },
         body: JSON.stringify({ key: "teams" }),
       });
-      setFamilies([]); setConfirmReset(false);
+      setFamilies([]); setTeams([[], [], [], []]); setTeamsFormed(false); setConfirmReset(false);
     } catch {}
     setLoading(false);
   };
@@ -670,46 +696,140 @@ function Admin() {
     </div></div>
   );
 
+  const completedCount = families.filter(f => (f.data.stationsComplete || 0) >= STATIONS).length;
+
   return (
     <div className="app"><div className="screen">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 28 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div className="hero" style={{ fontSize: 40 }}>ADMIN</div>
-        <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>Refresh</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn btn-ghost btn-sm" onClick={refresh} disabled={loading}>Refresh</button>
+          <button className="btn btn-ghost btn-sm" onClick={() => window.location.href = "/"}>Home</button>
+        </div>
       </div>
 
-      <div className="label" style={{ marginBottom: 16 }}>{families.length} families registered</div>
+      {/* Tab bar */}
+      <div style={{ display: "flex", background: "#111827", borderRadius: 14, padding: 4, marginBottom: 24, border: `1px solid ${C.border}` }}>
+        {["families", "teams"].map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{
+            flex: 1, padding: "10px", borderRadius: 10, border: "none",
+            background: tab === t ? C.gold : "transparent",
+            color: tab === t ? "#0A0E1A" : C.textDim,
+            fontFamily: "'DM Sans',sans-serif", fontSize: 14,
+            fontWeight: tab === t ? 600 : 400, cursor: "pointer", textTransform: "capitalize"
+          }}>{t}</button>
+        ))}
+      </div>
 
-      {families.length === 0 && <div style={{ textAlign: "center", color: C.textDim, padding: 40 }}>No families registered yet.</div>}
-
-      {families.map((f) => (
-        <div key={f.key} className="lb-row">
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 15, fontWeight: 600 }}>{f.data.name}</div>
-            <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>
-              {f.data.stationsComplete || 0}/{STATIONS} stations
-              {f.data.teamIndex !== undefined ? ` · ${TEAM_ICONS[f.data.teamIndex]} ${TEAM_NAMES[f.data.teamIndex]}` : ""}
+      {tab === "families" && (
+        <div>
+          {/* Form Teams CTA */}
+          <div style={{ background: teamsFormed ? `${C.success}11` : `${C.gold}11`, border: `1px solid ${teamsFormed ? C.success : C.gold}44`, borderRadius: 16, padding: "20px", marginBottom: 24 }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: teamsFormed ? C.success : C.gold, letterSpacing: 1, marginBottom: 4 }}>
+              {teamsFormed ? "✅ Teams Formed" : "⚡ Form Teams"}
             </div>
+            <div style={{ fontSize: 13, color: C.textDim, marginBottom: 16 }}>
+              {teamsFormed
+                ? "Teams have been formed. Tap Teams tab to see the lineup."
+                : `${completedCount} of ${families.length} families have finished. Tap below when ready to form teams.`}
+            </div>
+            <button
+              className="btn btn-gold"
+              onClick={formTeams}
+              disabled={forming || families.length === 0}
+              style={{ padding: "14px", fontSize: 18 }}>
+              {forming ? "FORMING TEAMS..." : teamsFormed ? "RE-FORM TEAMS" : "FORM TEAMS NOW"}
+            </button>
           </div>
-          <button onClick={() => deleteFamily(f.key)} disabled={deleting === f.key}
-            style={{ background: "#2A0A0A", border: `1px solid ${C.accent}`, borderRadius: 8, padding: "6px 12px", color: C.accent, fontSize: 13, fontFamily: "'DM Sans',sans-serif", cursor: "pointer" }}>
-            {deleting === f.key ? "..." : "Reset"}
-          </button>
-        </div>
-      ))}
 
-      {families.length > 0 && (
-        <div style={{ marginTop: 32 }}>
-          {!confirmReset ? (
-            <button className="btn btn-ghost" onClick={() => setConfirmReset(true)} style={{ color: C.accent, borderColor: C.accent }}>Reset All Families</button>
-          ) : (
-            <div>
-              <div style={{ textAlign: "center", color: C.accent, marginBottom: 16, fontSize: 14 }}>This will delete ALL families and teams. Are you sure?</div>
-              <div style={{ display: "flex", gap: 8 }}>
-                <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setConfirmReset(false)}>Cancel</button>
-                <button className="btn btn-red btn-sm" style={{ flex: 1 }} onClick={resetAll} disabled={loading}>{loading ? "Deleting..." : "Yes, Reset All"}</button>
+          <div className="label" style={{ marginBottom: 16 }}>{families.length} families · {completedCount} finished</div>
+
+          {families.length === 0 && <div style={{ textAlign: "center", color: C.textDim, padding: 40 }}>No families registered yet.</div>}
+
+          {families.map((f) => (
+            <div key={f.key} className="lb-row">
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600 }}>{f.data.name}</div>
+                <div style={{ fontSize: 12, color: C.textDim, marginTop: 2 }}>
+                  {f.data.stationsComplete || 0}/{STATIONS} stations
+                  {f.data.teamIndex !== undefined ? ` · ${TEAM_ICONS[f.data.teamIndex]} ${TEAM_NAMES[f.data.teamIndex]}` : " · Not assigned yet"}
+                </div>
               </div>
+              <div style={{ display: "flex", gap: 4, marginRight: 12 }}>
+                {Array.from({ length: STATIONS }).map((_, j) => (
+                  <div key={j} className={`dot ${j < (f.data.stationsComplete || 0) ? ((f.data.stationsComplete || 0) >= STATIONS ? "dot-done" : "dot-on") : ""}`} />
+                ))}
+              </div>
+              <button onClick={() => deleteFamily(f.key)} disabled={deleting === f.key}
+                style={{ background: "#2A0A0A", border: `1px solid ${C.accent}`, borderRadius: 8, padding: "6px 12px", color: C.accent, fontSize: 13, fontFamily: "'DM Sans',sans-serif", cursor: "pointer" }}>
+                {deleting === f.key ? "..." : "Reset"}
+              </button>
+            </div>
+          ))}
+
+          {families.length > 0 && (
+            <div style={{ marginTop: 32 }}>
+              {!confirmReset ? (
+                <button className="btn btn-ghost" onClick={() => setConfirmReset(true)} style={{ color: C.accent, borderColor: C.accent }}>Reset All Families</button>
+              ) : (
+                <div>
+                  <div style={{ textAlign: "center", color: C.accent, marginBottom: 16, fontSize: 14 }}>This will delete ALL families and teams. Are you sure?</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setConfirmReset(false)}>Cancel</button>
+                    <button className="btn btn-red btn-sm" style={{ flex: 1 }} onClick={resetAll} disabled={loading}>{loading ? "Deleting..." : "Yes, Reset All"}</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+        </div>
+      )}
+
+      {tab === "teams" && (
+        <div>
+          {!teamsFormed ? (
+            <div style={{ textAlign: "center", color: C.textDim, padding: 40 }}>
+              <div style={{ fontSize: 40, marginBottom: 16 }}>⏳</div>
+              <div>Teams not formed yet. Go to Families tab and tap Form Teams.</div>
+            </div>
+          ) : (
+            TEAM_NAMES.map((name, i) => {
+              const team = teams[i] || [];
+              const color = TEAM_COLORS[i];
+              const icon = TEAM_ICONS[i];
+              const kids = team.filter(m => m.age && parseInt(m.age) <= 12);
+              const adults = team.filter(m => !m.age || parseInt(m.age) > 12);
+              return (
+                <div key={i} className="team-card fade" style={{ borderColor: `${color}44`, background: `${color}08`, animationDelay: `${i * 0.1}s` }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                    <span style={{ fontSize: 32 }}>{icon}</span>
+                    <div>
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color, letterSpacing: 1 }}>{name}</div>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textDim, letterSpacing: 2 }}>
+                        {kids.length} kids · {adults.length} adults
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap" }}>
+                    {team.map((m, j) => (
+                      <div key={j} className="team-member-chip" style={{ color }}>
+                        {m.name}{m.age ? ` (${m.age})` : ""}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          <div style={{ marginTop: 16, padding: "16px 20px", background: "#111827", borderRadius: 14, border: `1px solid ${C.border}` }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: C.gold, letterSpacing: 2, marginBottom: 8 }}>SEMI FINALS</div>
+            <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.8 }}>
+              🦅 Eagles vs 🦁 Lions<br />
+              🐻 Bears vs 🦆 Hawks<br />
+              <span style={{ color: C.gold, marginTop: 4, display: "block" }}>Winners meet in the Final 🏆</span>
+            </div>
+          </div>
         </div>
       )}
     </div></div>
