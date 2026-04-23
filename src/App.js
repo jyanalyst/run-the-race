@@ -160,6 +160,17 @@ const api = {
   },
 };
 
+// Estimated total relay time for a team. Mirrors api/teams.js legTime():
+// adult = 1 unit, kid age N = max(1, 13 - N). Used in the UI to show the
+// fairness signal — all teams should have nearly equal totals.
+function teamRaceTime(team) {
+  return team.reduce((s, m) => {
+    const age = parseInt(m.age);
+    const isKid = m.age && age <= 12;
+    return s + (isKid ? Math.max(1, 13 - age) : 1);
+  }, 0);
+}
+
 // Team balancing algorithm
 function assignTeam(existingTeams, newMembers) {
   // existingTeams: array of 4 arrays of members
@@ -587,18 +598,38 @@ function Leaderboard({ data, teams, onBack, onRefresh }) {
 
       {tab === "teams" && (
         <div>
+          <div style={{ background: "#111827", border: `1px solid ${C.border}`, borderRadius: 14, padding: "16px 20px", marginBottom: 20 }}>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 18, color: C.gold, letterSpacing: 2, marginBottom: 10 }}>HOW TEAMS ARE FORMED</div>
+            <div style={{ fontSize: 13, color: C.textDim, lineHeight: 1.7 }}>
+              Every team should finish the relay in about the same total time.
+              <ul style={{ paddingLeft: 18, margin: "8px 0" }}>
+                <li>Adults &amp; older kids run a leg quickly</li>
+                <li>Younger kids take longer per leg</li>
+                <li>Families always stay together — never split</li>
+              </ul>
+              That's why <span style={{ color: C.text }}>smaller teams have more young kids</span> (fewer but slower runners) and <span style={{ color: C.text }}>bigger teams have more adults</span> (more but faster runners).
+              <div style={{ marginTop: 10, color: C.gold, fontSize: 12 }}>👇 Check the <strong>RACE TIME</strong> on each team — they should be nearly equal. That's the fairness check.</div>
+            </div>
+          </div>
           {TEAM_NAMES.map((name, i) => {
             const team = teams[i] || [];
             const color = TEAM_COLORS[i];
             const icon = TEAM_ICONS[i];
+            const raceTime = teamRaceTime(team);
             return (
               <div key={i} className="team-card fade" style={{ borderColor: `${color}44`, background: `${color}08`, animationDelay: `${i * 0.1}s` }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <span style={{ fontSize: 32 }}>{icon}</span>
-                  <div>
+                  <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color, letterSpacing: 1 }}>{name}</div>
                     <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textDim, letterSpacing: 2 }}>{team.length} RELAY MEMBERS</div>
                   </div>
+                  {team.length > 0 && (
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.textDim, letterSpacing: 2 }}>RACE TIME</div>
+                      <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color, letterSpacing: 1 }}>{raceTime}</div>
+                    </div>
+                  )}
                 </div>
                 {team.length === 0 ? (
                   <div style={{ color: C.textDim, fontSize: 13 }}>Waiting for families to finish...</div>
@@ -860,16 +891,23 @@ function Admin({ onExit }) {
               const icon = TEAM_ICONS[i];
               const kids = team.filter(m => m.age && parseInt(m.age) <= 12);
               const adults = team.filter(m => !m.age || parseInt(m.age) > 12);
+              const raceTime = teamRaceTime(team);
               return (
                 <div key={i} className="team-card fade" style={{ borderColor: `${color}44`, background: `${color}08`, animationDelay: `${i * 0.1}s` }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                     <span style={{ fontSize: 32 }}>{icon}</span>
-                    <div>
+                    <div style={{ flex: 1 }}>
                       <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color, letterSpacing: 1 }}>{name}</div>
                       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, color: C.textDim, letterSpacing: 2 }}>
-                        {kids.length} kids · {adults.length} adults
+                        {kids.length} kids · {adults.length} adults · {team.length} total
                       </div>
                     </div>
+                    {team.length > 0 && (
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: C.textDim, letterSpacing: 2 }}>RACE TIME</div>
+                        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color, letterSpacing: 1 }}>{raceTime}</div>
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap" }}>
                     {team.map((m, j) => (
