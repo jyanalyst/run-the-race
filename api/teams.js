@@ -47,7 +47,9 @@ function buildBalancedTeams(allFamilies) {
 
   // Sort family units by total race time descending — slowest (young-kid-heavy)
   // families get assigned first so they can land on the smallest team.
-  familyUnits.sort((a, b) => b.familyTime - a.familyTime);
+  // Name tiebreaker keeps the result deterministic across "Form Teams" runs,
+  // since redis.keys() returns families in an undefined order.
+  familyUnits.sort((a, b) => b.familyTime - a.familyTime || a.name.localeCompare(b.name));
 
   // Initialise 4 empty teams
   const teams = [[], [], [], []];
