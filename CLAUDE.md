@@ -4,9 +4,25 @@ Guidance for future Claude sessions working in this repo.
 
 ## What this is
 
-A single-evening event app for **NCC Care Group's "Run the Race" relay** (May 1, 2026). Families register on their phones, run a 4-station scavenger hunt with quizzes and a clue card, and at the end get assigned to one of four teams (Eagles, Lions, Bears, Hawks) for a final relay race.
+A single-evening event app for **NCC Care Group's "Run the Race" relay** (May 1, 2026, 100PLUS Promenade, Kallang). Families register on their phones, run a 4-station scavenger hunt with quizzes, and at the end get assigned to one of four teams (Eagles, Lions, Bears, Hawks) for a final relay race.
 
 Live URL: **https://run-the-race-chi.vercel.app/**
+
+## Station structure
+
+The 4 quiz stations carry a thematic arc mirroring the medal card given out at the end:
+
+| # | Gate | Theme | Activity |
+|---|---|---|---|
+| 1 | 20 | Loved, not earned | Take a sticker, wear it the rest of the evening |
+| 2 | 17 | Look up (Titus 2:13) | Point at a balloon hanging high, recite the verse |
+| 3 | 16 | A Person, not an Event | Family circle — name each face |
+| 4 | 19 | Endurance (Heb 12:1) | Walk three laps around cones with call-and-response |
+| 5 | 18 | Final relay | Zig-zag bean bag relay, 2 lanes, bracket format |
+
+**Self-serve design — no per-station volunteers.** Each station has a printed A4 card mirroring the in-app instructions, plus at most one passive prop (sticker basket, balloon, cones). Parents lead their kids through. The activity definitions live in `STATION_TASKS` and `STATION_LOCATIONS` at the top of [src/App.js](src/App.js). Audience floor for content: 5 years old — activities are physical/sensory, not reading-heavy.
+
+**Semi-final pairings are fixed:** Eagles vs Lions, Bears vs Hawks. Hardcoded in the app's Teams tab so teams know their opponent in advance.
 
 ## Stack
 

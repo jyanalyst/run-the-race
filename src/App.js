@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 
 const STATIONS = 4;
 const TEAM_NAMES = ["Eagles", "Lions", "Bears", "Hawks"];
@@ -7,75 +7,72 @@ const TEAM_EMOJIS = ["🦅", "🦁", "🐻", "🦅"];
 const TEAM_ICONS = ["🦅", "🦁", "🐻", "🦆"];
 
 const STATION_LOCATIONS = [
-  "Head to the promenade near Gate 19. Look for the orange cone marker on the left side of the concourse.",
-  "Find the station near Gate 18. Look for the blue cone marker against the stadium wall.",
-  "Head to the stretch between Gates 18 and 19 — middle section. Look for the green cone marker.",
-  "Return to the open area near Gate 19 — final station. Look for the red cone marker.",
+  "Head to Gate 20. Look for the printed card on a stand and a basket of stickers next to it.",
+  "Head to Gate 17. Look up — you'll see a bright balloon hanging high above the station, with a printed card below.",
+  "Head to Gate 16. Look for the printed card on a stand — no other props at this station.",
+  "Head to Gate 19, near registration. Look for the small circle of cones and a printed card.",
 ];
 
 const STATION_TASKS = [
   {
-    name: "Memory Verse Sprint",
-    emoji: "🏃",
-    instruction: "One family member sprints 20m to the verse board, reads Titus 2:13, runs back, and recites it to the family from memory. Together, answer the question below.",
+    name: "Loved",
+    emoji: "💛",
+    instruction: "Find the basket of LOVED stickers next to the printed card. Take one sticker each — every family member — and wear it for the rest of the evening. You didn't earn it. You don't have to do anything. It's a gift. That's how Jesus comes back for us — not because we were good enough, but because He loves us.",
     quizType: "mcq",
-    quizQuestion: "The Bible calls the rapture 'the blessed hope.' What makes it blessed rather than something to fear?",
+    quizQuestion: "Why does Jesus come back for us?",
     options: [
-      "Because we've done enough good things to deserve it",
-      "Because it depends on Jesus and what He accomplished — not us",
-      "Because we've been faithful enough",
-      "Because we've been going to church regularly",
+      "Because we were really good",
+      "Because we tried our best",
+      "Because He loves us",
+      "Because we kept all the rules",
     ],
-    correctIndex: 1,
+    correctIndex: 2,
     takeaway: "Jesus is coming back for us — not because we were good enough, but because He loves us.",
   },
   {
-    name: "Family Clue Card",
-    emoji: "🧩",
-    instruction: "Pass the phone around — each family member reads the clue below silently. No talking until everyone has read it. Then discuss together and answer the question.",
+    name: "Look Up",
+    emoji: "🎈",
+    instruction: "Look for the bright balloon hanging high. Point at it together as a family. Then read aloud, all together: \"Looking for the blessed hope and glorious appearing of our great God and Savior Jesus Christ.\" — Titus 2:13. Looking for the blessed hope means our hearts are pointed up — ready for Jesus, every day.",
     quizType: "mcq",
-    quizQuestion: "The clue describes four things that will happen at the rapture. What event is being described?",
+    quizQuestion: "What does it mean to look for the blessed hope?",
     options: [
-      "A dream about heaven",
-      "The second coming judgment",
-      "The rapture — Jesus returning for those He loves",
-      "The end of the world",
-    ],
-    correctIndex: 2,
-    clueCard: "He could return at any moment. In the twinkling of an eye, everything will change. Our bodies will be made new — no more sickness or pain. We will be with Him forever.",
-    takeaway: "One day Jesus is coming back — and everything sad will come untrue.",
-  },
-  {
-    name: "Human Knot",
-    emoji: "🤝",
-    instruction: "Stand in a circle. Everyone reach across and grab two different people's hands. Do NOT grab the hand of the person directly beside you. Untangle yourselves without letting go. Once you're in a clean circle — tap Task Done.",
-    quizType: "mcq",
-    quizQuestion: "Knowing Jesus could return at any moment — which best describes how we should live today?",
-    options: [
-      "Stressed and worried about whether we're ready",
-      "Passive — just waiting for it to happen",
-      "Intentional — loving people well and making every day count",
-      "Focused on securing our own future first",
-    ],
-    correctIndex: 2,
-    takeaway: "Because Jesus is coming back, every day matters. The people around us matter.",
-  },
-  {
-    name: "Stillness Challenge",
-    emoji: "✨",
-    instruction: "Everyone stand still. One person reads this verse aloud slowly: \"Looking for the blessed hope and glorious appearing of our great God and Savior Jesus Christ.\" — Titus 2:13. Hold the stillness for 30 seconds. Tap Begin to start the timer.",
-    quizType: "mcq",
-    quizQuestion: "The rapture means we're not just waiting for an event — we're waiting for a Person. What difference does that make?",
-    options: [
-      "It means we should be more religious",
-      "It means our hope is in Jesus Himself — not in circumstances or timing",
-      "It means we need to work harder before He returns",
-      "It means we should worry less about people around us",
+      "Stare at the sky all the time",
+      "Live with our hearts ready for Jesus",
+      "Hope that nothing bad happens",
+      "Wish for a good day at school",
     ],
     correctIndex: 1,
-    hasTimer: true,
-    timerSeconds: 30,
-    takeaway: "We're not just waiting for something to happen. We're waiting for Jesus — and He's coming for us.",
+    takeaway: "Looking for the blessed hope means our hearts are pointed up — ready for Jesus, every day.",
+  },
+  {
+    name: "A Person",
+    emoji: "👨‍👩‍👧",
+    instruction: "Stand in a small circle as a family. Look at each face. Point at each person and say their name out loud — one at a time. These are the people Jesus loves. We are not waiting for a thing to happen. We are not waiting for a day on the calendar. We are waiting for a Person — coming back for these faces, by name.",
+    quizType: "mcq",
+    quizQuestion: "Who are we waiting for?",
+    options: [
+      "A special day on the calendar",
+      "A surprise gift from heaven",
+      "Jesus — a Person who knows us by name",
+      "An angel to bring us a message",
+    ],
+    correctIndex: 2,
+    takeaway: "We are not waiting for a thing to happen. We are waiting for a Person — Jesus, who knows us by name.",
+  },
+  {
+    name: "Keep Going",
+    emoji: "🔄",
+    instruction: "Walk around the circle of cones three times together. Lap 1, say together: \"Because Jesus is worth it.\" Lap 2: \"Because He loves us.\" Lap 3: \"Because we are going to see Him.\" That's endurance. Not running fast. Just not stopping — because the One we love is at the end.",
+    quizType: "mcq",
+    quizQuestion: "What does it mean to run with endurance?",
+    options: [
+      "Run as fast as you can",
+      "Keep going, even when it's hard",
+      "Run only when you feel like it",
+      "Race past everyone else",
+    ],
+    correctIndex: 1,
+    takeaway: "Endurance is not running fast — it's not stopping, because the One we love is at the end.",
   },
 ];
 
@@ -395,10 +392,6 @@ function Race({ family, onUpdate, onBoard, onExit }) {
   const [phase, setPhase] = useState("clue");
   const [sel, setSel] = useState(null);
   const [showErr, setShowErr] = useState(false);
-  const [timerOn, setTimerOn] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30);
-  const [timerDone, setTimerDone] = useState(false);
-  const timerRef = useRef(null);
 
   const idx = family.currentIndex || 0;
   const stationNum = (family.stationOrder || [1,2,3,4])[idx];
@@ -408,14 +401,7 @@ function Race({ family, onUpdate, onBoard, onExit }) {
 
   useEffect(() => {
     setPhase("clue"); setSel(null); setShowErr(false);
-    setTimerOn(false); setTimeLeft(30); setTimerDone(false);
   }, [idx]);
-
-  useEffect(() => {
-    if (timerOn && timeLeft > 0) { timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000); }
-    else if (timerOn && timeLeft === 0) { setTimerDone(true); setTimerOn(false); }
-    return () => clearTimeout(timerRef.current);
-  }, [timerOn, timeLeft]);
 
   const checkAnswer = () => {
     if (sel === station.correctIndex) setPhase("correct");
@@ -470,38 +456,7 @@ function Race({ family, onUpdate, onBoard, onExit }) {
             <div style={{ fontSize: 15, lineHeight: 1.7 }}>{station.instruction}</div>
           </div>
 
-          {station.clueCard && (
-            <div style={{ marginBottom: 20 }}>
-              <div className="label" style={{ marginBottom: 12 }}>📇 Clue Card — Pass Around</div>
-              <div className="clue-member">
-                <div className="gold-label" style={{ marginBottom: 8 }}>Read silently. No talking until everyone has read it.</div>
-                <div style={{ fontSize: 16, lineHeight: 1.8, fontStyle: "italic" }}>{station.clueCard}</div>
-              </div>
-              <div style={{ fontSize: 13, color: C.textDim, marginTop: 8, textAlign: "center" }}>Pass the phone around — each person reads in silence.</div>
-            </div>
-          )}
-
-          {station.hasTimer ? (
-            <div style={{ textAlign: "center", marginBottom: 20 }}>
-              {!timerOn && !timerDone && <button className="btn btn-gold" onClick={() => setTimerOn(true)}>BEGIN — START TIMER</button>}
-              {timerOn && (
-                <div>
-                  <svg width="120" height="120" viewBox="0 0 120 120" style={{ margin: "20px auto", display: "block" }}>
-                    <circle cx="60" cy="60" r="54" fill="none" stroke={C.border} strokeWidth="8" />
-                    <circle cx="60" cy="60" r="54" fill="none" stroke={C.gold} strokeWidth="8"
-                      strokeDasharray="339.3" strokeDashoffset={339.3 * (1 - timeLeft / 30)}
-                      strokeLinecap="round" transform="rotate(-90 60 60)"
-                      style={{ transition: "stroke-dashoffset 1s linear" }} />
-                    <text x="60" y="68" textAnchor="middle" fill={C.gold} fontFamily="'Bebas Neue',sans-serif" fontSize="32">{timeLeft}</text>
-                  </svg>
-                  <div className="label pulse">Stay still... hold the Word...</div>
-                </div>
-              )}
-              {timerDone && <button className="btn btn-green" onClick={() => setPhase("quiz")}>TIMER DONE — ANSWER QUIZ</button>}
-            </div>
-          ) : (
-            <button className="btn btn-green" onClick={() => setPhase("quiz")}>TASK DONE — ANSWER QUIZ</button>
-          )}
+          <button className="btn btn-green" onClick={() => setPhase("quiz")}>TASK DONE — ANSWER QUIZ</button>
         </div>
       )}
 
