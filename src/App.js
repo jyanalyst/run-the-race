@@ -7,17 +7,24 @@ const TEAM_EMOJIS = ["🦅", "🦁", "🐻", "🦅"];
 const TEAM_ICONS = ["🦅", "🦁", "🐻", "🦆"];
 
 const STATION_LOCATIONS = [
-  "Head to Gate 20. Look for the printed card on a stand and a basket of stickers next to it.",
-  "Head to Gate 17. Look up — you'll see a bright balloon hanging high above the station, with a printed card below.",
-  "Head to Gate 16. Look for the printed card on a stand — no other props at this station.",
-  "Head to Gate 19, near registration. Look for the small circle of cones and a printed card.",
+  "Head to Gate 20. Look for a basket of bright LOVED stickers.",
+  "Head to Gate 17. Look up — you'll see a bright balloon hanging high.",
+  "Head to Gate 16. Look for a hula hoop on the ground.",
+  "Head to Gate 19, near registration. Look for a small circle of cones.",
 ];
 
 const STATION_TASKS = [
   {
     name: "Loved",
     emoji: "💛",
-    instruction: "Find the basket of LOVED stickers next to the printed card. Take one sticker each — every family member — and wear it for the rest of the evening. You didn't earn it. You don't have to do anything. It's a gift. That's how Jesus comes back for us — not because we were good enough, but because He loves us.",
+    instruction: `Find the basket of LOVED stickers.
+
+Take one for everyone in your family — even the grown-ups — and wear it for the rest of the evening.
+
+You didn't earn it. You didn't have to do anything. It's a gift.
+
+That's how Jesus is. He's coming back for us — not because we were good enough, but because He loves us.`,
+    parentNote: `Once everyone has a sticker, ask your kids: "Did you do anything to earn this?" Let them answer. Then say: "That's exactly how Jesus loves us."`,
     quizType: "mcq",
     quizQuestion: "Why does Jesus come back for us?",
     options: [
@@ -32,7 +39,17 @@ const STATION_TASKS = [
   {
     name: "Look Up",
     emoji: "🎈",
-    instruction: "Look for the bright balloon hanging high. Point at it together as a family. Then read aloud, all together: \"Looking for the blessed hope and glorious appearing of our great God and Savior Jesus Christ.\" — Titus 2:13. Looking for the blessed hope means our hearts are pointed up — ready for Jesus, every day.",
+    instruction: `Look up — see the bright balloon hanging high?
+
+Point at it together as a family.
+
+Now read aloud, all together:
+
+"Looking for the blessed hope and glorious appearing of our great God and Savior Jesus Christ."
+— Titus 2:13
+
+Looking for the blessed hope means our hearts are pointed up — ready for Jesus, every day.`,
+    parentNote: `For younger kids, say the verse one phrase at a time and have them echo. The point isn't reading skill — it's pointing up together as a family.`,
     quizType: "mcq",
     quizQuestion: "What does it mean to look for the blessed hope?",
     options: [
@@ -47,7 +64,17 @@ const STATION_TASKS = [
   {
     name: "A Person",
     emoji: "👨‍👩‍👧",
-    instruction: "Stand in a small circle as a family. Look at each face. Point at each person and say their name out loud — one at a time. These are the people Jesus loves. We are not waiting for a thing to happen. We are not waiting for a day on the calendar. We are waiting for a Person — coming back for these faces, by name.",
+    instruction: `Stand around the hula hoop together as a family.
+
+Look at each face. One by one, point at each person and say their name out loud.
+
+These are the people Jesus loves.
+
+We are not waiting for a thing to happen.
+We are not waiting for a day on the calendar.
+
+We are waiting for a Person — coming back for these faces, by name.`,
+    parentNote: `Don't rush this one. After all the names, look each child in the eye and say: "[Their name], Jesus knows you. He's coming back for you." Let it land.`,
     quizType: "mcq",
     quizQuestion: "Who are we waiting for?",
     options: [
@@ -62,7 +89,20 @@ const STATION_TASKS = [
   {
     name: "Keep Going",
     emoji: "🔄",
-    instruction: "Walk around the circle of cones three times together. Lap 1, say together: \"Because Jesus is worth it.\" Lap 2: \"Because He loves us.\" Lap 3: \"Because we are going to see Him.\" That's endurance. Not running fast. Just not stopping — because the One we love is at the end.",
+    instruction: `Walk around the circle of cones together as a family.
+
+Just walk first. Let your steps build into a rhythm.
+
+As the momentum builds, the parent calls out — and the kids echo it back. Cycle through these three lines:
+
+"Because Jesus is worth it."
+"Because He loves us."
+"Because we are going to see Him."
+
+Keep walking, keep calling, keep echoing — as long as feels right.
+
+That's endurance. Not running fast. Just not stopping — because the One we love is at the end.`,
+    parentNote: `Walk a few quiet laps first — match the slowest kid's pace. When the rhythm sets in, start calling the lines. Repeat as long as feels right — there's no count.`,
     quizType: "mcq",
     quizQuestion: "What does it mean to run with endurance?",
     options: [
@@ -74,6 +114,12 @@ const STATION_TASKS = [
     correctIndex: 1,
     takeaway: "Endurance is not running fast — it's not stopping, because the One we love is at the end.",
   },
+];
+
+const POST_RACE_DESTINATIONS = [
+  { emoji: "🔁", title: "RACE AGAIN", subtitle: "Climb the leaderboard with another lap." },
+  { emoji: "🎨", title: "HEAD TO THE ART STATION", subtitle: "Near registration. Look for the coloring tables." },
+  { emoji: "🏁", title: "HEAD TO THE FINAL RELAY", subtitle: "Gate 18. Practise the zig-zag bean bag run." },
 ];
 
 const C = {
@@ -434,7 +480,7 @@ function Race({ family, onUpdate, onBoard, onExit }) {
     });
   };
 
-  if (done) return <CompletionScreen family={family} onBoard={onBoard} onRestart={handleRestart} />;
+  if (done) return <CompletionScreen family={family} onRestart={handleRestart} />;
 
   return (
     <div className="app"><div className="screen">
@@ -468,7 +514,13 @@ function Race({ family, onUpdate, onBoard, onExit }) {
           <div className="card">
             <span style={{ fontSize: 40, marginBottom: 12, display: "block" }}>{station.emoji}</span>
             <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 28, color: C.gold, letterSpacing: 1, marginBottom: 12 }}>{station.name}</div>
-            <div style={{ fontSize: 15, lineHeight: 1.7 }}>{station.instruction}</div>
+            <div style={{ fontSize: 15, lineHeight: 1.7, whiteSpace: "pre-line" }}>{station.instruction}</div>
+            {station.parentNote && (
+              <div style={{ marginTop: 20, padding: "14px 16px", background: "#1A2235", borderLeft: `3px solid ${C.gold}`, borderRadius: 8 }}>
+                <div className="gold-label" style={{ marginBottom: 6 }}>👨‍👩‍👧 For Parents</div>
+                <div style={{ fontSize: 13, lineHeight: 1.6, color: C.textDim, fontStyle: "italic" }}>{station.parentNote}</div>
+              </div>
+            )}
           </div>
 
           <button className="btn btn-green" onClick={() => setPhase("quiz")}>TASK DONE — ANSWER QUIZ</button>
@@ -509,23 +561,52 @@ function Race({ family, onUpdate, onBoard, onExit }) {
   );
 }
 
-function CompletionScreen({ family, onBoard, onRestart }) {
-  const teamIndex = family.teamIndex !== undefined ? family.teamIndex : null;
-  const teamName = teamIndex !== null ? TEAM_NAMES[teamIndex] : null;
-  const teamColor = teamIndex !== null ? TEAM_COLORS[teamIndex] : C.gold;
-  const teamIcon = teamIndex !== null ? TEAM_ICONS[teamIndex] : "🏁";
+function CompletionScreen({ family, onRestart }) {
+  const [phase, setPhase] = useState("recap");
+  const hasTeam = family.teamIndex !== undefined;
+  const teamIndex = family.teamIndex;
+  const teamName = hasTeam ? TEAM_NAMES[teamIndex] : null;
+  const teamColor = hasTeam ? TEAM_COLORS[teamIndex] : C.gold;
+  const teamIcon = hasTeam ? TEAM_ICONS[teamIndex] : null;
+
+  if (phase === "recap") {
+    return (
+      <div className="app"><div className="screen">
+        <div className="pop" style={{ paddingTop: 32 }}>
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <span className="big-emoji">🎉</span>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 48, color: C.gold, lineHeight: 1, marginBottom: 12, textShadow: `0 0 40px ${C.gold}66` }}>YOU RAN THE RACE</div>
+            <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.6 }}>Take this home with you.</div>
+          </div>
+
+          {STATION_TASKS.map((s, i) => (
+            <div key={i} className="card" style={{ marginBottom: 12 }}>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: C.gold, letterSpacing: 1, marginBottom: 8 }}>
+                {s.emoji} {s.name.toUpperCase()}
+              </div>
+              <div style={{ fontSize: 14, color: C.text, lineHeight: 1.6, fontStyle: "italic" }}>{s.takeaway}</div>
+            </div>
+          ))}
+
+          <button className="btn btn-gold" onClick={() => setPhase("destinations")} style={{ marginTop: 12 }}>NEXT →</button>
+        </div>
+      </div></div>
+    );
+  }
 
   return (
     <div className="app"><div className="screen">
-      <div className="pop" style={{ textAlign: "center", paddingTop: 32 }}>
-        <span className="big-emoji">{teamIcon}</span>
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: C.textDim, letterSpacing: 3, marginBottom: 8 }}>YOU'RE IN TEAM</div>
-        <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 64, color: teamColor, lineHeight: 1, marginBottom: 24, textShadow: `0 0 40px ${teamColor}66` }}>{teamName || "..."}</div>
-
-        {teamIndex !== null && (
-          <div style={{ background: `${teamColor}11`, border: `2px solid ${teamColor}44`, borderRadius: 20, padding: 24, marginBottom: 24, textAlign: "left" }}>
-            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 11, letterSpacing: 3, color: teamColor, textTransform: "uppercase", marginBottom: 12 }}>Your Relay Team</div>
-            <div style={{ color: C.textDim, fontSize: 13, marginBottom: 8 }}>Check the leaderboard to see your full team as more families finish.</div>
+      <div className="pop" style={{ paddingTop: 32 }}>
+        {hasTeam ? (
+          <div style={{ textAlign: "center", marginBottom: 24 }}>
+            <span className="big-emoji">{teamIcon}</span>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, color: C.textDim, letterSpacing: 3, marginBottom: 8 }}>YOU'RE IN TEAM</div>
+            <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 64, color: teamColor, lineHeight: 1, textShadow: `0 0 40px ${teamColor}66` }}>{teamName}</div>
+          </div>
+        ) : (
+          <div style={{ background: `${C.gold}11`, border: `2px solid ${C.gold}44`, borderRadius: 20, padding: 24, marginBottom: 24 }}>
+            <div className="gold-label" style={{ marginBottom: 8 }}>⏳ Standby</div>
+            <div style={{ fontSize: 15, lineHeight: 1.6, color: C.text }}>You'll be allocated to a team shortly.</div>
           </div>
         )}
 
@@ -533,8 +614,22 @@ function CompletionScreen({ family, onBoard, onRestart }) {
           <div className="verse-text">"You've held the Word. Now run with it."</div>
         </div>
 
-        <button className="btn btn-gold" onClick={onBoard}>VIEW TEAMS & LEADERBOARD</button>
-        {onRestart && <button className="btn btn-ghost" onClick={onRestart} style={{ marginTop: 12 }}>RUN AGAIN 🔁</button>}
+        {POST_RACE_DESTINATIONS.map((d, i) => {
+          const isRaceAgain = i === 0;
+          return (
+            <div
+              key={i}
+              className="card"
+              onClick={isRaceAgain ? onRestart : undefined}
+              style={{ cursor: isRaceAgain ? "pointer" : "default", marginBottom: 12 }}
+            >
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 22, color: C.gold, letterSpacing: 1, marginBottom: 6 }}>
+                {d.emoji} {d.title}
+              </div>
+              <div style={{ fontSize: 14, color: C.textDim, lineHeight: 1.5 }}>{d.subtitle}</div>
+            </div>
+          );
+        })}
       </div>
     </div></div>
   );

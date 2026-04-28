@@ -16,11 +16,11 @@ The 4 quiz stations carry a thematic arc mirroring the medal card given out at t
 |---|---|---|---|
 | 1 | 20 | Loved, not earned | Take a sticker, wear it the rest of the evening |
 | 2 | 17 | Look up (Titus 2:13) | Point at a balloon hanging high, recite the verse |
-| 3 | 16 | A Person, not an Event | Family circle — name each face |
+| 3 | 16 | A Person, not an Event | Family circle around a hula hoop — name each face |
 | 4 | 19 | Endurance (Heb 12:1) | Walk three laps around cones with call-and-response |
 | 5 | 18 | Final relay | Zig-zag bean bag relay, 2 lanes, bracket format |
 
-**Self-serve design — no per-station volunteers.** Each station has a printed A4 card mirroring the in-app instructions, plus at most one passive prop (sticker basket, balloon, cones). Parents lead their kids through. The activity definitions live in `STATION_TASKS` and `STATION_LOCATIONS` at the top of [src/App.js](src/App.js). Audience floor for content: 5 years old — activities are physical/sensory, not reading-heavy.
+**Self-serve design — no per-station volunteers, no printed cards.** Each station has only one passive prop (sticker basket, balloon, hula hoop, cones); the in-app instruction is the sole task source-of-truth. Parents lead their kids through. The activity definitions live in `STATION_TASKS` and `STATION_LOCATIONS` at the top of [src/App.js](src/App.js). Post-race destinations (Art station near registration, Final Relay practice at Gate 18) live in `POST_RACE_DESTINATIONS` in the same file. Audience floor for content: 5 years old — activities are physical/sensory, not reading-heavy.
 
 **Semi-final pairings are fixed:** Eagles vs Lions, Bears vs Hawks. Hardcoded in the app's Teams tab so teams know their opponent in advance.
 
