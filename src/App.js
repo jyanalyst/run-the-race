@@ -101,7 +101,7 @@ As the momentum builds, the parent calls out — and the kids echo it back. Cycl
 
 Keep walking, keep calling, keep echoing — as long as feels right.
 
-That's endurance. Not running fast. Just not stopping — because the One we love is at the end.`,
+That's endurance. Not running fast. Just not stopping — because the One who loves us is at the end.`,
     parentNote: `Walk a few quiet laps first — match the slowest kid's pace. When the rhythm sets in, start calling the lines. Repeat as long as feels right — there's no count.`,
     quizType: "mcq",
     quizQuestion: "What does it mean to run with endurance?",
@@ -112,7 +112,7 @@ That's endurance. Not running fast. Just not stopping — because the One we lov
       "Race past everyone else",
     ],
     correctIndex: 1,
-    takeaway: "Endurance is not running fast — it's not stopping, because the One we love is at the end.",
+    takeaway: "Endurance is not running fast — it's not stopping, because the One who loves us is at the end.",
   },
 ];
 
