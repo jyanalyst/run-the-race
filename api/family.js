@@ -36,6 +36,7 @@ export default async function handler(req, res) {
         currentIndex: 0,
         stationsComplete: 0,
         completedStations: [],
+        runsCompleted: 0,
         members: [],
         registeredAt: Date.now(),
       };

@@ -415,11 +415,26 @@ function Race({ family, onUpdate, onBoard, onExit }) {
       currentIndex: idx + 1,
       completedStations: [...(family.completedStations || []), stationNum],
     };
+    if (newComplete === STATIONS) {
+      updates.runsCompleted = (family.runsCompleted || 0) + 1;
+    }
     await onUpdate(updates);
     setPhase("clue");
   };
 
-  if (done) return <CompletionScreen family={family} onBoard={onBoard} />;
+  const handleRestart = async () => {
+    if (!window.confirm("Run the race again? Your team and members stay the same.")) return;
+    const startStation = Math.floor(Math.random() * STATIONS) + 1;
+    const stationOrder = Array.from({ length: STATIONS }, (_, i) => ((startStation - 1 + i) % STATIONS) + 1);
+    await onUpdate({
+      currentIndex: 0,
+      stationsComplete: 0,
+      completedStations: [],
+      stationOrder,
+    });
+  };
+
+  if (done) return <CompletionScreen family={family} onBoard={onBoard} onRestart={handleRestart} />;
 
   return (
     <div className="app"><div className="screen">
@@ -487,14 +502,14 @@ function Race({ family, onUpdate, onBoard, onExit }) {
           <p style={{ color: C.textDim, margin: "0 0 28px", fontSize: 15, lineHeight: 1.7 }}>
             {idx < STATIONS - 1 ? "Your next clue is ready. Keep running!" : "Final station done!"}
           </p>
-          <button className="btn btn-gold" onClick={next}>{idx < STATIONS - 1 ? "GET NEXT CLUE →" : "SEE YOUR TEAM 🏁"}</button>
+          <button className="btn btn-gold" onClick={next}>{idx < STATIONS - 1 ? "GET NEXT CLUE →" : (family.runsCompleted >= 1 ? "FINISH RUN 🏁" : "SEE YOUR TEAM 🏁")}</button>
         </div>
       )}
     </div></div>
   );
 }
 
-function CompletionScreen({ family, onBoard }) {
+function CompletionScreen({ family, onBoard, onRestart }) {
   const teamIndex = family.teamIndex !== undefined ? family.teamIndex : null;
   const teamName = teamIndex !== null ? TEAM_NAMES[teamIndex] : null;
   const teamColor = teamIndex !== null ? TEAM_COLORS[teamIndex] : C.gold;
@@ -519,6 +534,7 @@ function CompletionScreen({ family, onBoard }) {
         </div>
 
         <button className="btn btn-gold" onClick={onBoard}>VIEW TEAMS & LEADERBOARD</button>
+        {onRestart && <button className="btn btn-ghost" onClick={onRestart} style={{ marginTop: 12 }}>RUN AGAIN 🔁</button>}
       </div>
     </div></div>
   );
@@ -627,7 +643,7 @@ function Leaderboard({ data, teams, onBack, onRefresh }) {
                   <div key={j} className={`dot ${j < f.stationsComplete ? (f.stationsComplete >= STATIONS ? "dot-done" : "dot-on") : ""}`} />
                 ))}
               </div>
-              {f.stationsComplete >= STATIONS && <span style={{ fontSize: 16 }}>🏁</span>}
+              {(f.runsCompleted || 0) >= 1 && <span style={{ fontSize: 14, fontFamily: "'DM Mono',monospace", color: C.gold, marginLeft: 4 }}>🏁×{f.runsCompleted}</span>}
             </div>
           ))}
         </div>

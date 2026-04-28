@@ -16,7 +16,11 @@ export default async function handler(req, res) {
     const families = raw
       .map(r => (r ? (typeof r === "string" ? JSON.parse(r) : r) : null))
       .filter(Boolean)
-      .sort((a, b) => b.stationsComplete - a.stationsComplete || a.registeredAt - b.registeredAt);
+      .sort((a, b) =>
+        (b.runsCompleted || 0) - (a.runsCompleted || 0) ||
+        b.stationsComplete - a.stationsComplete ||
+        a.registeredAt - b.registeredAt
+      );
 
     return res.status(200).json({ leaderboard: families });
   } catch (err) {
