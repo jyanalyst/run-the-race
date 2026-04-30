@@ -757,6 +757,8 @@ function Admin({ onExit }) {
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [confirmResetTeams, setConfirmResetTeams] = useState(false);
+  const [resettingTeams, setResettingTeams] = useState(false);
   const [teamsFormed, setTeamsFormed] = useState(false);
   const [teamsStale, setTeamsStale] = useState(false);
   const [tab, setTab] = useState("families");
@@ -820,6 +822,28 @@ function Admin({ onExit }) {
       if (teamsFormed) setTeamsStale(true);
     } catch {}
     setDeleting(null);
+  };
+
+  const resetTeams = async () => {
+    setResettingTeams(true);
+    try {
+      const res = await fetch("/api/admin", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "x-admin-password": password },
+        body: JSON.stringify({ action: "resetTeams" }),
+      });
+      if (res.ok) {
+        setFamilies(fs => fs.map(f => {
+          const { teamIndex, ...rest } = f.data;
+          return { ...f, data: rest };
+        }));
+        setTeams([[], [], [], []]);
+        setTeamsFormed(false);
+        setTeamsStale(false);
+        setConfirmResetTeams(false);
+      }
+    } catch {}
+    setResettingTeams(false);
   };
 
   const removeMember = async (key, memberIndex) => {
@@ -924,6 +948,27 @@ function Admin({ onExit }) {
                   style={{ padding: "14px", fontSize: 18 }}>
                   {forming ? "FORMING TEAMS..." : teamsFormed ? "RE-FORM TEAMS" : "FORM TEAMS NOW"}
                 </button>
+                {teamsFormed && (
+                  <div style={{ marginTop: 12 }}>
+                    {!confirmResetTeams ? (
+                      <button
+                        onClick={() => setConfirmResetTeams(true)}
+                        style={{ background: "none", border: "none", color: C.textDim, fontSize: 12, fontFamily: "'DM Sans',sans-serif", textDecoration: "underline", cursor: "pointer", padding: 0 }}>
+                        Reset teams (start from scratch)
+                      </button>
+                    ) : (
+                      <div>
+                        <div style={{ fontSize: 12, color: C.accent, marginBottom: 8 }}>This will clear all team assignments. Families stay registered.</div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <button className="btn btn-ghost btn-sm" style={{ flex: 1 }} onClick={() => setConfirmResetTeams(false)}>Cancel</button>
+                          <button className="btn btn-red btn-sm" style={{ flex: 1 }} onClick={resetTeams} disabled={resettingTeams}>
+                            {resettingTeams ? "Resetting..." : "Yes, reset teams"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })()}

@@ -5,7 +5,7 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "rtr2025";
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, x-admin-password");
   if (req.method === "OPTIONS") return res.status(200).end();
 
@@ -48,6 +48,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ family });
       }
 
+      return res.status(400).json({ error: "Unknown action" });
+    }
+
+    // PUT — top-level admin actions (resetTeams)
+    if (req.method === "PUT") {
+      const { action } = req.body;
+      if (action === "resetTeams") {
+        await redis.del("teams");
+        const familyKeys = await redis.keys("family:*");
+        for (const fKey of familyKeys) {
+          const fRaw = await redis.get(fKey);
+          if (!fRaw) continue;
+          const family = typeof fRaw === "string" ? JSON.parse(fRaw) : fRaw;
+          if (family.teamIndex !== undefined) {
+            delete family.teamIndex;
+            await redis.set(fKey, JSON.stringify(family));
+          }
+        }
+        return res.status(200).json({ reset: true });
+      }
       return res.status(400).json({ error: "Unknown action" });
     }
 
